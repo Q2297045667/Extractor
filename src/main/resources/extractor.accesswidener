@@ -14,7 +14,6 @@ accessible class net/minecraft/world/level/levelgen/DensityFunctions$TwoArgument
 accessible class net/minecraft/world/level/levelgen/DensityFunctions$Constant
 accessible class net/minecraft/world/level/levelgen/DensityFunctions$MulOrAdd
 accessible class net/minecraft/world/level/levelgen/DensityFunctions$MulOrAdd$Type
-accessible class net/minecraft/world/level/levelgen/DensityFunctions$BlendDensity
 accessible class net/minecraft/world/level/levelgen/DensityFunctions$BlendAlpha
 accessible class net/minecraft/world/level/levelgen/DensityFunctions$BlendOffset
 accessible class net/minecraft/world/level/levelgen/DensityFunctions$EndIslandDensityFunction
@@ -25,8 +24,6 @@ accessible class net/minecraft/world/level/levelgen/DensityFunctions$Noise
 accessible class net/minecraft/world/level/levelgen/DensityFunctions$ShiftA
 accessible class net/minecraft/world/level/levelgen/DensityFunctions$ShiftB
 accessible class net/minecraft/world/level/levelgen/DensityFunctions$ShiftedNoise
-accessible class net/minecraft/world/level/levelgen/DensityFunctions$WeirdScaledSampler
-accessible class net/minecraft/world/level/levelgen/DensityFunctions$WeirdScaledSampler$RarityValueMapper
 accessible class net/minecraft/world/level/levelgen/DensityFunctions$Spline
 accessible class net/minecraft/world/level/levelgen/DensityFunctions$Spline$Coordinate
 
