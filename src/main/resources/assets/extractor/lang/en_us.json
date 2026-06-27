@@ -1,0 +1,18 @@
+{
+  "mod.extractor.name": "Pumpkin Extractor",
+  "mod.extractor.description": "Extracts Minecraft data (blocks, items, entities, translations, etc.) into JSON files on server start.",
+
+  "extractor.log.starting": "Starting Pumpkin Extractor",
+  "extractor.log.output_dir": "Output directory: %s",
+  "extractor.log.output_dir_failed": "Failed to create output directory.",
+  "extractor.log.server_started": "Server started — running extractors...",
+  "extractor.log.wrote": "Wrote %s",
+  "extractor.log.extractor_failed": "Extractor \"%s\" failed.",
+  "extractor.log.done": "Done, took %dms",
+  "extractor.log.fatal_error": "Extraction failed with fatal error",
+
+  "extractor.translations.not_found": "Could not find lang file for: %s",
+  "extractor.translations.wrote": "Wrote language: %s",
+  "extractor.translations.failed": "Failed to write language: %s",
+  "extractor.translations.summary": "Extracted %d languages to %s"
+}

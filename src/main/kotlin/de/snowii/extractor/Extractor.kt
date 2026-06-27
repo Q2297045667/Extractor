@@ -27,7 +27,7 @@ class Extractor : ModInitializer {
     }
 
     override fun onInitialize() {
-        logger.info("Starting Pumpkin Extractor")
+        logger.info(Lang.fmt("extractor.log.starting"))
 
         val extractors = arrayOf(
             Dialog(), DialogActionType(), DialogBodyType(), DialogType(),
@@ -51,16 +51,16 @@ class Extractor : ModInitializer {
         val outputDirectory: Path
         try {
             outputDirectory = Files.createDirectories(Paths.get(OUTPUT_DIR))
-            logger.info("Output directory: {}", outputDirectory.toAbsolutePath())
+            logger.info(Lang.fmt("extractor.log.output_dir", outputDirectory.toAbsolutePath()))
         } catch (e: IOException) {
-            logger.error("Failed to create output directory.", e)
+            logger.error(Lang.fmt("extractor.log.output_dir_failed"), e)
             return
         }
 
         val gson = GsonBuilder().disableHtmlEscaping().create()
 
         ServerLifecycleEvents.SERVER_STARTED.register(ServerLifecycleEvents.ServerStarted { server: MinecraftServer ->
-            logger.info("Server started — running extractors...")
+            logger.info(Lang.fmt("extractor.log.server_started"))
             try {
                 val timeInMillis = measureTimeMillis {
                     for (ext in extractors) {
@@ -70,15 +70,15 @@ class Extractor : ModInitializer {
                             FileWriter(out.toFile(), StandardCharsets.UTF_8).use { writer ->
                                 gson.toJson(ext.extract(server), writer)
                             }
-                            logger.info("Wrote ${out.toAbsolutePath()}")
+                            logger.info(Lang.fmt("extractor.log.wrote", out.toAbsolutePath()))
                         } catch (e: Exception) {
-                            logger.error("Extractor \"${ext.fileName()}\" failed.", e)
+                            logger.error(Lang.fmt("extractor.log.extractor_failed", ext.fileName()), e)
                         }
                     }
                 }
-                logger.info("Done, took ${timeInMillis}ms")
+                logger.info(Lang.fmt("extractor.log.done", timeInMillis))
             } catch (e: Throwable) {
-                logger.error("Extraction failed with fatal error", e)
+                logger.error(Lang.fmt("extractor.log.fatal_error"), e)
             }
         })
     }

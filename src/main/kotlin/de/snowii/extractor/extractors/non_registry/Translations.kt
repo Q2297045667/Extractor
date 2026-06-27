@@ -5,6 +5,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import de.snowii.extractor.Extractor
+import de.snowii.extractor.Lang
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import org.slf4j.LoggerFactory
@@ -31,7 +32,7 @@ class Translations : Extractor.Extractor {
 
         for (langCode in clientReflection?.languageCodes ?: listOf("en_us")) {
             val stream = loadLangStream(langCode) ?: run {
-                logger.warn("Could not find lang file for: $langCode")
+                logger.warn(Lang.fmt("extractor.translations.not_found", langCode))
                 continue
             }
             try {
@@ -45,13 +46,13 @@ class Translations : Extractor.Extractor {
                     }
                 }
                 summary.add(langCode)
-                logger.info("Wrote language: $langCode")
+                logger.info(Lang.fmt("extractor.translations.wrote", langCode))
             } catch (e: Exception) {
-                logger.warn("Failed to write language: $langCode", e)
+                logger.warn(Lang.fmt("extractor.translations.failed", langCode), e)
             }
         }
 
-        logger.info("Extracted ${summary.size()} languages to ${langDir.toAbsolutePath()}")
+        logger.info(Lang.fmt("extractor.translations.summary", summary.size(), langDir.toAbsolutePath()))
         return summary
     }
 
