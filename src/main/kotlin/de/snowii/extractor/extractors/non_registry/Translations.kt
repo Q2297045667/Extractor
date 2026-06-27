@@ -12,11 +12,12 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileWriter
 import java.io.InputStreamReader
+import java.net.JarURLConnection
 import java.net.URL
+import java.util.Enumeration
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.util.jar.JarFile
 
 class Translations : Extractor.Extractor {
     private val gson: Gson = GsonBuilder().disableHtmlEscaping().create()
@@ -67,49 +68,61 @@ class Translations : Extractor.Extractor {
 
     /**
      * Scans the classpath for all language JSON files under /assets/minecraft/lang/.
-     * Handles both JAR-packaged and file-system classpath layouts.
+     * Uses getResources() to find ALL matching locations across the classpath,
+     * then scans each one via JarURLConnection (JAR) or File (filesystem).
      */
     private fun findLangCodesInClasspath(): List<String> {
-        val codes = mutableListOf<String>()
-        val langDirUrl: URL = this.javaClass.getResource("/assets/minecraft/lang/")
-            ?: return codes
+        val codes = mutableSetOf<String>()
+        val classLoader = this.javaClass.classLoader
+        val urls: Enumeration<URL> = classLoader.getResources("assets/minecraft/lang/")
 
-        when (langDirUrl.protocol) {
-            "jar" -> {
-                // Running from a JAR (e.g. Minecraft client/server jar)
-                val jarUrlStr = langDirUrl.path.substringBefore("!")
-                val entryPrefix = langDirUrl.path.substringAfter("!").removePrefix("/")
-                val jarFile = JarFile(File(URL(jarUrlStr).toURI()))
-                jarFile.use { jar ->
-                    val entries = jar.entries()
-                    while (entries.hasMoreElements()) {
-                        val entry = entries.nextElement()
-                        val name = entry.name
-                        if (!entry.isDirectory
-                            && name.startsWith(entryPrefix)
-                            && name.endsWith(".json")
-                        ) {
-                            val filename = name.substringAfterLast("/")
-                            codes.add(filename.removeSuffix(".json"))
+        while (urls.hasMoreElements()) {
+            val url = urls.nextElement()
+            logger.info("Scanning: $url (protocol=${url.protocol})")
+
+            when (url.protocol) {
+                "jar" -> {
+                    val conn = url.openConnection()
+                    if (conn is JarURLConnection) {
+                        val jarFile = conn.jarFile
+                        val entryPrefix = conn.entryName ?: ""
+                        logger.info("  JAR: ${jarFile.name} (prefix: $entryPrefix)")
+
+                        jarFile.use { jar ->
+                            val entries = jar.entries()
+                            while (entries.hasMoreElements()) {
+                                val entry = entries.nextElement()
+                                val name = entry.name
+                                if (!entry.isDirectory
+                                    && name.startsWith(entryPrefix)
+                                    && name.endsWith(".json")
+                                ) {
+                                    val filename = name.substringAfterLast("/")
+                                    codes.add(filename.removeSuffix(".json"))
+                                }
+                            }
+                        }
+                    } else {
+                        logger.warn("  Not a JarURLConnection: ${conn.javaClass.name}")
+                    }
+                }
+                "file" -> {
+                    val dir = File(url.toURI())
+                    logger.info("  Directory: ${dir.absolutePath}")
+                    dir.listFiles()?.forEach { file ->
+                        if (file.isFile && file.name.endsWith(".json")) {
+                            codes.add(file.name.removeSuffix(".json"))
                         }
                     }
                 }
-            }
-            "file" -> {
-                // Running from a file system (development environment)
-                val langDir = File(langDirUrl.toURI())
-                langDir.listFiles()?.forEach { file ->
-                    if (file.isFile && file.name.endsWith(".json")) {
-                        codes.add(file.name.removeSuffix(".json"))
-                    }
+                else -> {
+                    logger.warn("  Unsupported protocol: ${url.protocol}")
                 }
-            }
-            else -> {
-                logger.warn("Unsupported classpath protocol: ${langDirUrl.protocol}")
             }
         }
 
-        logger.info("Found ${codes.size} language(s) in classpath")
-        return codes
+        val sorted = codes.sorted()
+        logger.info("Found ${sorted.size} language(s) in classpath")
+        return sorted
     }
 }
