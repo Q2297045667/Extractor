@@ -9,7 +9,6 @@ import de.snowii.extractor.extractors.structures.Structures
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.minecraft.server.MinecraftServer
-import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.FileWriter
 import java.io.IOException
@@ -21,157 +20,32 @@ import kotlin.system.measureTimeMillis
 
 
 class Extractor : ModInitializer {
-    private val modID: String = "pumpkin_extractor"
-    private val logger: Logger = LoggerFactory.getLogger(modID)
+    private val logger = LoggerFactory.getLogger("pumpkin_extractor")
 
     companion object {
-        const val OUTPUT_DIR: String = "pumpkin_extractor_output"
+        const val OUTPUT_DIR = "pumpkin_extractor_output"
     }
 
     override fun onInitialize() {
         logger.info("Starting Pumpkin Extractor")
 
         val extractors = arrayOf(
-            Dialog(),
-            DialogActionType(),
-            DialogBodyType(),
-            DialogType(),
-            InputControlType(),
-            Advancement(),
-            Effect(),
-            SpawnEgg(),
-            PotionBrewing(),
-            Potion(),
-            Sounds(),
-            Recipes(),
-            Biome(),
-            BiomeMixerTest(),
-            WorldEvent(),
-            Carver(),
-            Enchantments(),
-            ScoreboardDisplaySlot(),
-            Dimension(),
-            Particles(),
-            EntityAttributes(),
-            ChunkStatus(),
-            EntityStatuses(),
-            MessageType(),
-            SoundCategory(),
-            EntityPose(),
-            GameEvent(),
-            GameRules(),
-            SyncedRegistries(),
-            ChunkGenSetting(),
-            Packets(),
-            Screens(),
-            PlacedFeatures(),
-            ConfiguredFeatures(),
-            Tags(),
-            JukeboxSong(),
-            MetaDataType(),
-            TrackedData(),
-            NoiseParameters(),
-            Structures(),
-            StructureSet(),
-            Entities(),
-            Items(),
-            DataComponent(),
-            Blocks(),
-            MultiNoise(),
-            MultiNoise().Sample(),
-            ChunkGenSetting(),
-            Translations(),
-            DensityFunctions(),
-            DensityFunctions().Tests(),
-            DamageTypes(),
-            Fluids(),
-            Properties(),
-            ComposterIncreaseChance(),
-            FlowerPotTransformation(),
-            Fuels(),
-            RecipeRemainder(),
-            VillagerData(),
-            CustomStats(),
-            Stats(),
-            SlotRanges(),
-         /*   ChunkDumpTests.NoiseDump(
-                "no_blend_no_beard_0_0.chunk",
-                0,
-                0,
-                0,
-                arrayListOf("Interpolated", "CacheOnce", "FlatCache", "Cache2D")
-            ),
-            ChunkDumpTests.NoiseDump(
-                "no_blend_no_beard_7_4.chunk",
-                0,
-                7,
-                4,
-                arrayListOf("Interpolated", "CacheOnce", "FlatCache", "Cache2D")
-            ),
-            ChunkDumpTests.NoiseDump(
-                "no_blend_no_beard_only_cell_cache_0_0.chunk",
-                0,
-                0,
-                0,
-                ArrayList()
-            ),
-            ChunkDumpTests.NoiseDump(
-                "no_blend_no_beard_only_cell_cache_flat_cache_0_0.chunk",
-                0,
-                0,
-                0,
-                arrayListOf("FlatCache")
-            ),
-            ChunkDumpTests.NoiseDump(
-                "no_blend_no_beard_only_cell_cache_interpolated_0_0.chunk",
-                0,
-                0,
-                0,
-                arrayListOf("Interpolated")
-            ),
-            ChunkDumpTests.NoiseDump(
-                "no_blend_no_beard_only_cell_cache_once_cache_0_0.chunk",
-                0,
-                0,
-                0,
-                arrayListOf("CacheOnce")
-            ),
-            ChunkDumpTests.NoiseDump(
-                "no_blend_no_beard_-595_544.chunk",
-                0,
-                -595,
-                544,
-                arrayListOf("Interpolated", "CacheOnce", "FlatCache", "Cache2D")
-            ),
-            ChunkDumpTests.NoiseDump(
-                "no_blend_no_beard_-119_183.chunk",
-                0,
-                -119,
-                183,
-                arrayListOf("Interpolated", "CacheOnce", "FlatCache", "Cache2D")
-            ),
-            ChunkDumpTests.NoiseDump(
-                "no_blend_no_beard_13579_-6_11.chunk",
-                13579,
-                -6,
-                11,
-                arrayListOf("Interpolated", "CacheOnce", "FlatCache", "Cache2D")
-            ),
-            ChunkDumpTests.NoiseDump(
-                "no_blend_no_beard_13579_-2_15.chunk",
-                13579,
-                -2,
-                15,
-                arrayListOf("Interpolated", "CacheOnce", "FlatCache", "Cache2D")
-            ),
-            BiomeDumpTests(),
-            BiomeDumpTests().MultiNoiseBiomeSourceTest(),
-            ChunkDumpTests.SurfaceDump("no_blend_no_beard_surface_0_0.chunk", 0, 0, 0),
-            ChunkDumpTests.SurfaceDump("no_blend_no_beard_surface_badlands_-595_544.chunk", 0, -595, 544),
-            ChunkDumpTests.SurfaceDump("no_blend_no_beard_surface_frozen_ocean_-119_183.chunk", 0, -119, 183),
-            ChunkDumpTests.SurfaceDump("no_blend_no_beard_surface_13579_-6_11.chunk", 13579, -6, 11),
-            ChunkDumpTests.SurfaceDump("no_blend_no_beard_surface_13579_-2_15.chunk", 13579, -2, 15),
-            ChunkDumpTests.SurfaceDump("no_blend_no_beard_surface_13579_-7_9.chunk", 13579, -7, 9)*/
+            Dialog(), DialogActionType(), DialogBodyType(), DialogType(),
+            InputControlType(), Advancement(), Effect(), SpawnEgg(),
+            PotionBrewing(), Potion(), Sounds(), Recipes(),
+            Biome(), BiomeMixerTest(), WorldEvent(), Carver(),
+            Enchantments(), ScoreboardDisplaySlot(), Dimension(), Particles(),
+            EntityAttributes(), ChunkStatus(), EntityStatuses(), MessageType(),
+            SoundCategory(), EntityPose(), GameEvent(), GameRules(),
+            SyncedRegistries(), ChunkGenSetting(), Packets(), Screens(),
+            PlacedFeatures(), ConfiguredFeatures(), Tags(), JukeboxSong(),
+            MetaDataType(), TrackedData(), NoiseParameters(), Structures(),
+            StructureSet(), Entities(), Items(), DataComponent(), Blocks(),
+            MultiNoise(), MultiNoise().Sample(), Translations(),
+            DensityFunctions(), DensityFunctions().Tests(), DamageTypes(),
+            Fluids(), Properties(), ComposterIncreaseChance(),
+            FlowerPotTransformation(), Fuels(), RecipeRemainder(),
+            VillagerData(), CustomStats(), Stats(), SlotRanges(),
         )
 
         val outputDirectory: Path
@@ -179,7 +53,7 @@ class Extractor : ModInitializer {
             outputDirectory = Files.createDirectories(Paths.get(OUTPUT_DIR))
             logger.info("Output directory: {}", outputDirectory.toAbsolutePath())
         } catch (e: IOException) {
-            logger.info("Failed to create output directory.", e)
+            logger.error("Failed to create output directory.", e)
             return
         }
 
@@ -193,12 +67,12 @@ class Extractor : ModInitializer {
                         try {
                             val out = outputDirectory.resolve(ext.fileName())
                             Files.createDirectories(out.parent)
-                            val fileWriter = FileWriter(out.toFile(), StandardCharsets.UTF_8)
-                            gson.toJson(ext.extract(server), fileWriter)
-                            fileWriter.close()
-                            logger.info("Wrote " + out.toAbsolutePath())
-                        } catch (e: java.lang.Exception) {
-                            logger.error(("Extractor for \"" + ext.fileName()) + "\" failed.", e)
+                            FileWriter(out.toFile(), StandardCharsets.UTF_8).use { writer ->
+                                gson.toJson(ext.extract(server), writer)
+                            }
+                            logger.info("Wrote ${out.toAbsolutePath()}")
+                        } catch (e: Exception) {
+                            logger.error("Extractor \"${ext.fileName()}\" failed.", e)
                         }
                     }
                 }
