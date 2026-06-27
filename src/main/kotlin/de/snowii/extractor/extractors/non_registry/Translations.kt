@@ -60,10 +60,7 @@ class Translations : Extractor.Extractor {
         clientReflection?.let { ref ->
             try {
                 val id = Identifier.fromNamespaceAndPath("minecraft", "lang/$langCode.json")
-                val resources = ref.getResourceStack(id)
-                if (resources.isNotEmpty()) {
-                    return resources.first().open() as InputStream
-                }
+                ref.openResource(id)?.let { return it }
             } catch (_: Exception) { }
         }
         return this.javaClass.getResourceAsStream("/assets/minecraft/lang/$langCode.json")
@@ -74,11 +71,19 @@ class Translations : Extractor.Extractor {
      * Null when running on a dedicated server (no client available).
      */
     private class ClientReflection private constructor(
-        private val getResourceStack: (Identifier) -> List<*>,
+        private val resourceManager: Any,
+        private val getResourceStackMethod: java.lang.reflect.Method,
         val languageCodes: List<String>
     ) {
+        @Suppress("UNCHECKED_CAST")
+        fun openResource(identifier: Identifier): InputStream? {
+            val resources = getResourceStackMethod.invoke(resourceManager, identifier) as List<*>
+            if (resources.isEmpty()) return null
+            val resource = resources.first() ?: return null
+            return resource.javaClass.getMethod("open").invoke(resource) as InputStream
+        }
+
         companion object {
-            @Suppress("UNCHECKED_CAST")
             fun resolve(): ClientReflection? {
                 return try {
                     val mc = Class.forName("net.minecraft.client.Minecraft")
@@ -87,10 +92,12 @@ class Translations : Extractor.Extractor {
                     val stackMethod = rm.javaClass.getMethod("getResourceStack", Identifier::class.java)
 
                     val lm = mc.getMethod("getLanguageManager").invoke(client)
+                    @Suppress("UNCHECKED_CAST")
                     val languages = lm.javaClass.getMethod("getLanguages").invoke(lm) as Map<String, *>
 
                     ClientReflection(
-                        getResourceStack = { id -> stackMethod.invoke(rm, id) as List<*> },
+                        resourceManager = rm,
+                        getResourceStackMethod = stackMethod,
                         languageCodes = languages.keys.sorted()
                     )
                 } catch (_: Exception) {
