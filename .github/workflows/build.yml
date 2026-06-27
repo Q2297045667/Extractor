@@ -31,3 +31,10 @@ jobs:
 
       - name: Build
         run: ./gradlew build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: extractor-build
+          path: build/libs/*.jar
+          if-no-files-found: error
