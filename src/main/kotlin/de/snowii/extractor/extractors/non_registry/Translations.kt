@@ -6,17 +6,16 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import de.snowii.extractor.Extractor
+import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.io.File
 import java.io.FileWriter
+import java.io.InputStream
 import java.io.InputStreamReader
-import java.net.JarURLConnection
-import java.net.URL
-import java.util.Enumeration
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
 
 class Translations : Extractor.Extractor {
@@ -30,15 +29,14 @@ class Translations : Extractor.Extractor {
     override fun extract(server: MinecraftServer): JsonElement {
         val langDir = Paths.get(Extractor.OUTPUT_DIR, "lang")
         Files.createDirectories(langDir)
-
         val summary = JsonArray()
-        val langCodes = findLangCodesInClasspath()
+
+        val langCodes = findLangCodes()
 
         for (langCode in langCodes) {
-            val resourcePath = "/assets/minecraft/lang/$langCode.json"
-            val inputStream = this.javaClass.getResourceAsStream(resourcePath)
+            val inputStream = loadLangFile(langCode)
             if (inputStream == null) {
-                logger.warn("Could not find lang file: $resourcePath")
+                logger.warn("Could not find lang file for: $langCode")
                 continue
             }
 
@@ -62,67 +60,62 @@ class Translations : Extractor.Extractor {
         }
 
         logger.info("Extracted ${summary.size()} languages to ${langDir.toAbsolutePath()}")
-
         return summary
     }
 
     /**
-     * Scans the classpath for all language JSON files under /assets/minecraft/lang/.
-     * Uses getResources() to find ALL matching locations across the classpath,
-     * then scans each one via JarURLConnection (JAR) or File (filesystem).
+     * Discovers all available language codes from the client-side LanguageManager.
+     * Falls back to classpath scanning on dedicated servers.
      */
-    private fun findLangCodesInClasspath(): List<String> {
-        val codes = mutableSetOf<String>()
-        val classLoader = this.javaClass.classLoader
-        val urls: Enumeration<URL> = classLoader.getResources("assets/minecraft/lang/")
-
-        while (urls.hasMoreElements()) {
-            val url = urls.nextElement()
-            logger.info("Scanning: $url (protocol=${url.protocol})")
-
-            when (url.protocol) {
-                "jar" -> {
-                    val conn = url.openConnection()
-                    if (conn is JarURLConnection) {
-                        val jarFile = conn.jarFile
-                        val entryPrefix = conn.entryName ?: ""
-                        logger.info("  JAR: ${jarFile.name} (prefix: $entryPrefix)")
-
-                        jarFile.use { jar ->
-                            val entries = jar.entries()
-                            while (entries.hasMoreElements()) {
-                                val entry = entries.nextElement()
-                                val name = entry.name
-                                if (!entry.isDirectory
-                                    && name.startsWith(entryPrefix)
-                                    && name.endsWith(".json")
-                                ) {
-                                    val filename = name.substringAfterLast("/")
-                                    codes.add(filename.removeSuffix(".json"))
-                                }
-                            }
-                        }
-                    } else {
-                        logger.warn("  Not a JarURLConnection: ${conn.javaClass.name}")
-                    }
-                }
-                "file" -> {
-                    val dir = File(url.toURI())
-                    logger.info("  Directory: ${dir.absolutePath}")
-                    dir.listFiles()?.forEach { file ->
-                        if (file.isFile && file.name.endsWith(".json")) {
-                            codes.add(file.name.removeSuffix(".json"))
-                        }
-                    }
-                }
-                else -> {
-                    logger.warn("  Unsupported protocol: ${url.protocol}")
-                }
+    @Suppress("UNCHECKED_CAST")
+    private fun findLangCodes(): List<String> {
+        try {
+            val minecraftClass = Class.forName("net.minecraft.client.Minecraft")
+            val client = minecraftClass.getMethod("getInstance").invoke(null) ?: return classpathFallback()
+            val languageManager = minecraftClass.getMethod("getLanguageManager").invoke(client)
+            val languages = languageManager.javaClass.getMethod("getLanguages").invoke(languageManager) as Map<String, *>
+            if (languages.isNotEmpty()) {
+                val codes = languages.keys.sorted()
+                logger.info("Found ${codes.size} language(s) via client LanguageManager")
+                return codes
             }
+        } catch (e: Exception) {
+            logger.info("Client LanguageManager not available, scanning classpath...")
+        }
+        return classpathFallback()
+    }
+
+    /**
+     * Loads a language file from the client ResourceManager (which has access to the
+     * full Minecraft assets at runtime), falling back to classpath for dedicated servers.
+     */
+    private fun loadLangFile(langCode: String): InputStream? {
+        // Try client resource manager first (has full assets at runtime)
+        try {
+            val minecraftClass = Class.forName("net.minecraft.client.Minecraft")
+            val client = minecraftClass.getMethod("getInstance").invoke(null) ?: return classpathLoad(langCode)
+            val resourceManager = minecraftClass.getMethod("getResourceManager").invoke(client)
+            val identifier = Identifier.fromNamespaceAndPath("minecraft", "lang/$langCode.json")
+            val resources = resourceManager.javaClass
+                .getMethod("getResourceStack", Identifier::class.java)
+                .invoke(resourceManager, identifier) as List<*>
+            if (resources.isNotEmpty()) {
+                val resource = resources.first()!!
+                return resource.javaClass.getMethod("open").invoke(resource) as InputStream
+            }
+        } catch (e: Exception) {
+            logger.debug("Client resource load failed for $langCode, trying classpath...")
         }
 
-        val sorted = codes.sorted()
-        logger.info("Found ${sorted.size} language(s) in classpath")
-        return sorted
+        // Fallback: direct classpath loading (dedicated server or dev environment)
+        return classpathLoad(langCode)
+    }
+
+    private fun classpathLoad(langCode: String): InputStream? {
+        return this.javaClass.getResourceAsStream("/assets/minecraft/lang/$langCode.json")
+    }
+
+    private fun classpathFallback(): List<String> {
+        return listOf("en_us")
     }
 }
