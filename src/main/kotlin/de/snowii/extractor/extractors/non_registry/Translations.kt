@@ -5,6 +5,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import de.snowii.extractor.Extractor
+import de.snowii.extractor.Lang
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import org.slf4j.LoggerFactory
@@ -31,7 +32,7 @@ class Translations : Extractor.Extractor {
 
         for (langCode in clientReflection?.languageCodes ?: listOf("en_us")) {
             val stream = loadLangStream(langCode) ?: run {
-                logger.warn("Could not find lang file for: $langCode")
+                logger.warn(Lang.fmt("extractor.translations.not_found", langCode))
                 continue
             }
             try {
@@ -45,13 +46,13 @@ class Translations : Extractor.Extractor {
                     }
                 }
                 summary.add(langCode)
-                logger.info("Wrote language: $langCode")
+                logger.info(Lang.fmt("extractor.translations.wrote", langCode))
             } catch (e: Exception) {
-                logger.warn("Failed to write language: $langCode", e)
+                logger.warn(Lang.fmt("extractor.translations.failed", langCode), e)
             }
         }
 
-        logger.info("Extracted ${summary.size()} languages to ${langDir.toAbsolutePath()}")
+        logger.info(Lang.fmt("extractor.translations.summary", summary.size(), langDir.toAbsolutePath()))
         return summary
     }
 
@@ -59,10 +60,7 @@ class Translations : Extractor.Extractor {
         clientReflection?.let { ref ->
             try {
                 val id = Identifier.fromNamespaceAndPath("minecraft", "lang/$langCode.json")
-                val resources = ref.getResourceStack(id)
-                if (resources.isNotEmpty()) {
-                    return resources.first().open() as InputStream
-                }
+                ref.openResource(id)?.let { return it }
             } catch (_: Exception) { }
         }
         return this.javaClass.getResourceAsStream("/assets/minecraft/lang/$langCode.json")
@@ -73,11 +71,19 @@ class Translations : Extractor.Extractor {
      * Null when running on a dedicated server (no client available).
      */
     private class ClientReflection private constructor(
-        private val getResourceStack: (Identifier) -> List<*>,
+        private val resourceManager: Any,
+        private val getResourceStackMethod: java.lang.reflect.Method,
         val languageCodes: List<String>
     ) {
+        @Suppress("UNCHECKED_CAST")
+        fun openResource(identifier: Identifier): InputStream? {
+            val resources = getResourceStackMethod.invoke(resourceManager, identifier) as List<*>
+            if (resources.isEmpty()) return null
+            val resource = resources.first() ?: return null
+            return resource.javaClass.getMethod("open").invoke(resource) as InputStream
+        }
+
         companion object {
-            @Suppress("UNCHECKED_CAST")
             fun resolve(): ClientReflection? {
                 return try {
                     val mc = Class.forName("net.minecraft.client.Minecraft")
@@ -86,10 +92,12 @@ class Translations : Extractor.Extractor {
                     val stackMethod = rm.javaClass.getMethod("getResourceStack", Identifier::class.java)
 
                     val lm = mc.getMethod("getLanguageManager").invoke(client)
+                    @Suppress("UNCHECKED_CAST")
                     val languages = lm.javaClass.getMethod("getLanguages").invoke(lm) as Map<String, *>
 
                     ClientReflection(
-                        getResourceStack = { id -> stackMethod.invoke(rm, id) as List<*> },
+                        resourceManager = rm,
+                        getResourceStackMethod = stackMethod,
                         languageCodes = languages.keys.sorted()
                     )
                 } catch (_: Exception) {
