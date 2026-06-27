@@ -177,6 +177,7 @@ class Extractor : ModInitializer {
         val outputDirectory: Path
         try {
             outputDirectory = Files.createDirectories(Paths.get(OUTPUT_DIR))
+            logger.info("Output directory: {}", outputDirectory.toAbsolutePath())
         } catch (e: IOException) {
             logger.info("Failed to create output directory.", e)
             return
@@ -185,21 +186,26 @@ class Extractor : ModInitializer {
         val gson = GsonBuilder().disableHtmlEscaping().create()
 
         ServerLifecycleEvents.SERVER_STARTED.register(ServerLifecycleEvents.ServerStarted { server: MinecraftServer ->
-            val timeInMillis = measureTimeMillis {
-                for (ext in extractors) {
-                    try {
-                        val out = outputDirectory.resolve(ext.fileName())
-                        Files.createDirectories(out.parent)
-                        val fileWriter = FileWriter(out.toFile(), StandardCharsets.UTF_8)
-                        gson.toJson(ext.extract(server), fileWriter)
-                        fileWriter.close()
-                        logger.info("Wrote " + out.toAbsolutePath())
-                    } catch (e: java.lang.Exception) {
-                        logger.error(("Extractor for \"" + ext.fileName()) + "\" failed.", e)
+            logger.info("Server started — running extractors...")
+            try {
+                val timeInMillis = measureTimeMillis {
+                    for (ext in extractors) {
+                        try {
+                            val out = outputDirectory.resolve(ext.fileName())
+                            Files.createDirectories(out.parent)
+                            val fileWriter = FileWriter(out.toFile(), StandardCharsets.UTF_8)
+                            gson.toJson(ext.extract(server), fileWriter)
+                            fileWriter.close()
+                            logger.info("Wrote " + out.toAbsolutePath())
+                        } catch (e: java.lang.Exception) {
+                            logger.error(("Extractor for \"" + ext.fileName()) + "\" failed.", e)
+                        }
                     }
                 }
+                logger.info("Done, took ${timeInMillis}ms")
+            } catch (e: Throwable) {
+                logger.error("Extraction failed with fatal error", e)
             }
-            logger.info("Done, took ${timeInMillis}ms")
         })
     }
 
