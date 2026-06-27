@@ -24,6 +24,10 @@ class Extractor : ModInitializer {
     private val modID: String = "pumpkin_extractor"
     private val logger: Logger = LoggerFactory.getLogger(modID)
 
+    companion object {
+        const val OUTPUT_DIR: String = "pumpkin_extractor_output"
+    }
+
     override fun onInitialize() {
         logger.info("Starting Pumpkin Extractor")
 
@@ -172,7 +176,7 @@ class Extractor : ModInitializer {
 
         val outputDirectory: Path
         try {
-            outputDirectory = Files.createDirectories(Paths.get("pumpkin_extractor_output"))
+            outputDirectory = Files.createDirectories(Paths.get(OUTPUT_DIR))
         } catch (e: IOException) {
             logger.info("Failed to create output directory.", e)
             return
@@ -185,6 +189,7 @@ class Extractor : ModInitializer {
                 for (ext in extractors) {
                     try {
                         val out = outputDirectory.resolve(ext.fileName())
+                        Files.createDirectories(out.parent)
                         val fileWriter = FileWriter(out.toFile(), StandardCharsets.UTF_8)
                         gson.toJson(ext.extract(server), fileWriter)
                         fileWriter.close()
