@@ -37,12 +37,14 @@ class Translations : Extractor.Extractor {
             }
             try {
                 stream.use { s ->
-                    val translations = gson.fromJson(
+                    val raw = gson.fromJson(
                         InputStreamReader(s, StandardCharsets.UTF_8),
                         JsonObject::class.java
                     ) as JsonObject
+                    val sorted = JsonObject()
+                    raw.entrySet().sortedBy { it.key }.forEach { (k, v) -> sorted.add(k, v) }
                     FileWriter(langDir.resolve("${langCode}_java.json").toFile(), StandardCharsets.UTF_8).use { w ->
-                        gson.toJson(translations, w)
+                        gson.toJson(sorted, w)
                     }
                 }
                 summary.add(langCode)
